@@ -1,0 +1,159 @@
+---------------------------------------------
+OSHONSOFT Z80 ASSEMBLER LISTING
+Line   Addr Opcode      Label   Instruction
+---------------------------------------------
+0001   0000             ;Gonzalez Aquino Serigio
+0002   0000             ; Actividad 3 NIP de seguridad
+0003   0000             ;Microprocesadores
+0004   0000             
+0005   0000             
+0006   0000              .org 0000h ;Line modified by ASM preprocessor (.ORG correction): .org 0000h
+0007   0000 3E 89           ld a,89h          ; Configuración de puertos
+0008   0002 D3 03           out (CW),a        ; Escribir en el puerto de control
+0009   0004 31 FF 27        ld SP,27ffh       ; Inicializar el puntero de pila
+0010   0007             
+0011   0007 21 00 20        ld hl,text1       ; Mostrar el mensaje "Ingrese clave"
+0012   000A CD 71 00        call disp_text
+0013   000D CD 14 00        call solicitar_clave
+0014   0010             
+0015   0010             halt_loop:
+0016   0010 76              halt              ; Detener el sistema si se bloquea
+0017   0011 C3 10 00        jp halt_loop      ; Ciclo infinito si se bloquea
+0018   0014             
+0019   0014             ; Subrutinas
+0020   0014             
+0021   0014             ; Solicitar clave de 4 dígitos
+0022   0014             solicitar_clave:
+0023   0014 06 03           ld b,3            ; Contador de intentos (3 intentos permitidos)
+0024   0016             
+0025   0016             intento_nuevo:
+0026   0016 21 A7 20        ld hl,passw       ; Apuntar a donde se almacenará la clave
+0027   0019 0E 04           ld c,4            ; Contador de 4 dígitos
+0028   001B             
+0029   001B             read_digit:
+0030   001B DB 01           in a,(KEYB)       ; Leer un dígito del teclado
+0031   001D FE 30           cp 30h            ; Comprobar si es menor que '0' (30h)
+0032   001F DA 57 00        jp c,error_input
+0033   0022 FE 3A           cp 3Ah            ; Comprobar si es mayor que '9' (39h + 1)
+0034   0024 D2 57 00        jp nc,error_input
+0035   0027             
+0036   0027 77              ld (hl),a         ; Guardar el dígito válido
+0037   0028 3E 2A           ld a,'*'          ; Mostrar un asterisco en la pantalla
+0038   002A D3 00           out (LCD),a       ; Escribir el asterisco en la pantalla LCD
+0039   002C 23              inc hl            ; Mover al siguiente espacio para el próximo dígito
+0040   002D 0D              dec c             ; Disminuir el contador de dígitos
+0041   002E C2 1B 00        jp nz,read_digit  ; Si faltan dígitos, continuar leyendo
+0042   0031             
+0043   0031                 ; Verificar clave
+0044   0031 21 A7 20        ld hl,passw       ; Apuntar al primer dígito ingresado
+0045   0034 11 A3 20        ld de,pattern     ; Apuntar a la clave patrón
+0046   0037 CD 60 00        call verificar_clave
+0047   003A CA 50 00        jp z,clave_correcta  ; Si las claves coinciden, saltar a clave_correcta
+0048   003D             
+0049   003D                 ; Clave incorrecta
+0050   003D 21 51 20        ld hl,text_incorrecta
+0051   0040 CD 71 00        call disp_text
+0052   0043 05              dec b              ; Disminuir intentos
+0053   0044 C2 16 00        jp nz,intento_nuevo  ; Intentar de nuevo si no se han acabado los intentos
+0054   0047             
+0055   0047                 ; Bloquear el sistema
+0056   0047 21 74 20        ld hl,text_bloqueado
+0057   004A CD 71 00        call disp_text
+0058   004D C3 10 00        jp halt_loop
+0059   0050             
+0060   0050             ; Mostrar mensaje de clave correcta
+0061   0050             clave_correcta:
+0062   0050 21 30 20        ld hl,text_correcta
+0063   0053 CD 71 00        call disp_text
+0064   0056 C9              ret
+0065   0057             
+0066   0057             ; Manejo de entrada no válida
+0067   0057             error_input:
+0068   0057 21 10 20        ld hl,text_error
+0069   005A CD 71 00        call disp_text
+0070   005D C3 14 00        jp solicitar_clave
+0071   0060             
+0072   0060             ; Verificar si la clave es correcta
+0073   0060             verificar_clave:
+0074   0060 0E 04           ld c,4            ; Comparar 4 dígitos
+0075   0062             ver_loop:
+0076   0062 7E              ld a,(hl)         ; Cargar dígito de la clave ingresada
+0077   0063 5F              ld e,a            ; Cargar dígito en E
+0078   0064 1A              ld a,(de)         ; Cargar dígito de la clave patrón
+0079   0065 BB              cp e              ; Comparar los valores
+0080   0066 C2 70 00        jp nz,verificar_fail ; Si no coinciden, salir con error
+0081   0069 23              inc hl
+0082   006A 13              inc de
+0083   006B 0D              dec c
+0084   006C C2 62 00        jp nz,ver_loop    ; Si faltan dígitos, continuar verificando
+0085   006F C9              ret               ; Retornar con éxito
+0086   0070             
+0087   0070             verificar_fail:
+0088   0070 C9              ret               ; Retornar con error
+0089   0071             
+0090   0071             ; Subrutina para mostrar un texto en la pantalla
+0091   0071             disp_text:
+0092   0071             repeat1:
+0093   0071 7E              ld a,(hl)
+0094   0072 FE 26           cp "&"
+0095   0074 CA 7D 00        jp z,end_sub1
+0096   0077 D3 00           out (LCD),a
+0097   0079 23              inc hl
+0098   007A C3 71 00        jp repeat1
+0099   007D             end_sub1:
+0100   007D C9              ret
+0101   007E             
+0102   007E             ; Datos
+0103   007E              .org 2000h ;Line modified by ASM preprocessor (.ORG correction): .org 2000h
+0104   2000 49 6E 67 72 text1:          .db "Ingrese clave: &"
+0104   2004 65 73 65 20 
+0104   2008 63 6C 61 76 
+0104   200C 65 3A 20 26 
+0105   2010 45 72 72 6F text_error:     .db "Error: Solo se permiten numeros&"
+0105   2014 72 3A 20 53 
+0105   2018 6F 6C 6F 20 
+0105   201C 73 65 20 70 
+0105   2020 65 72 6D 69 
+0105   2024 74 65 6E 20 
+0105   2028 6E 75 6D 65 
+0105   202C 72 6F 73 26 
+0106   2030 43 6C 61 76 text_correcta:  .db "Clave correcta, acceso concedido&"
+0106   2034 65 20 63 6F 
+0106   2038 72 72 65 63 
+0106   203C 74 61 2C 20 
+0106   2040 61 63 63 65 
+0106   2044 73 6F 20 63 
+0106   2048 6F 6E 63 65 
+0106   204C 64 69 64 6F 
+0106   2050 26          
+0107   2051 43 6C 61 76 text_incorrecta:.db "Clave incorrecta, intente de nuevo&"
+0107   2055 65 20 69 6E 
+0107   2059 63 6F 72 72 
+0107   205D 65 63 74 61 
+0107   2061 2C 20 69 6E 
+0107   2065 74 65 6E 74 
+0107   2069 65 20 64 65 
+0107   206D 20 6E 75 65 
+0107   2071 76 6F 26    
+0108   2074 41 63 63 65 text_bloqueado: .db "Acceso bloqueado. No puede ingresar mas claves&"
+0108   2078 73 6F 20 62 
+0108   207C 6C 6F 71 75 
+0108   2080 65 61 64 6F 
+0108   2084 2E 20 4E 6F 
+0108   2088 20 70 75 65 
+0108   208C 64 65 20 69 
+0108   2090 6E 67 72 65 
+0108   2094 73 61 72 20 
+0108   2098 6D 61 73 20 
+0108   209C 63 6C 61 76 
+0108   20A0 65 73 26    
+0109   20A3 31 32 33 34 pattern:        .db "1234"
+0110   20A7 00 00 00 00 passw:          .db 00h,00h,00h,00h  ; Espacio para los 4 dígitos ingresados
+0111   20AB             
+0112   20AB             ; Constantes
+0113   20AB             LCD:    .equ 00h
+0114   20AB             KEYB:   .equ 01h
+0115   20AB             CW:     .equ 03h
+0116   20AB             
+0117   20AB             .end
+Number of errors = 0
